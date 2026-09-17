@@ -414,6 +414,12 @@ func (c *Compiler) extractMCPGatewayConfig(mcpVal any) *MCPGatewayRuntimeConfig 
 	}
 
 	mcpConfig := &MCPGatewayRuntimeConfig{}
+	if value, present := mcpObj["ci-evidence-boundary"]; present {
+		mcpConfig.CIEvidenceBoundary = &CIEvidenceBoundaryConfig{}
+		if obj, ok := value.(map[string]any); ok {
+			mcpConfig.CIEvidenceBoundary.Image, _ = obj["image"].(string)
+		}
+	}
 
 	// Extract container (required for MCP gateway)
 	if containerVal, hasContainer := mcpObj["container"]; hasContainer {

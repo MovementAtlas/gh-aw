@@ -46,6 +46,9 @@ func generateMCPGatewaySetup(yaml *strings.Builder, tools map[string]any, mcpToo
 	yaml.WriteString("        id: start-mcp-gateway\n")
 	ensureDefaultMCPGatewayConfig(workflowData)
 	gatewayConfig := workflowData.SandboxConfig.MCP
+	if err := validateCIEvidenceBoundary(gatewayConfig, tools); err != nil {
+		return err
+	}
 	mcpEnvVars := collectMCPEnvironmentVariables(tools, mcpTools, workflowData, hasAgenticWorkflows)
 	if auth, ok := jiraAuthConfig(tools); ok && auth["type"] == jiraAPITokenAuth {
 		mcpEnvVars[jiraBasicAuthEnvVar] = ""
@@ -57,6 +60,9 @@ func generateMCPGatewaySetup(yaml *strings.Builder, tools map[string]any, mcpToo
 	yaml.WriteString("        run: |\n")
 	yaml.WriteString("          set -eo pipefail\n")
 	writeJiraAPIAuthPreparation(yaml, tools)
+	if gatewayConfig.CIEvidenceBoundary != nil {
+		writeCIEvidenceStateSetup(yaml)
+	}
 	yaml.WriteString("          mkdir -p \"${RUNNER_TEMP}/gh-aw/mcp-config\"\n")
 	yaml.WriteString("          if [ -n \"${GITHUB_EVENT_PATH:-}\" ] && [ -r \"${GITHUB_EVENT_PATH}\" ]; then\n")
 	yaml.WriteString("            GH_AW_SAFEOUTPUTS_EVENT_PATH=\"${RUNNER_TEMP}/gh-aw/safeoutputs/github_event.json\"\n")
@@ -443,12 +449,18 @@ func buildMCPGatewayContainerCommand(opts buildMCPGatewayContainerCommandOptions
 	// targets the redirected registry (e.g. an internal mirror) rather than the
 	// default public registry.
 	containerImage = applyContainerPinMappingFromData(containerImage, workflowData)
+	if gatewayConfig.CIEvidenceBoundary != nil {
+		containerImage = gatewayConfig.CIEvidenceBoundary.Image
+	}
 	var containerCmd strings.Builder
 	// Pre-size the builder to avoid reallocations. The base flags from
 	// appendMCPGatewayBaseEnvFlags alone write ~2KB of -e flags; allocating
 	// 2048 bytes upfront covers the common case without overcommitting.
 	containerCmd.Grow(2048)
 	containerCmd.WriteString("docker run -i --rm")
+	if gatewayConfig.CIEvidenceBoundary != nil {
+		containerCmd.WriteString(" --pull=never -e MA_CI_EVIDENCE_LEASE -v ${GH_AW_CI_EVIDENCE_STATE_DIR}:/private-gateway-state:rw")
+	}
 	if isAWFNetworkIsolationEnabled(workflowData) {
 		containerCmd.WriteString(" --network bridge")
 		if isDockerSbxRuntime(workflowData) {

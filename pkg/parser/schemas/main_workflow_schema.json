@@ -4021,6 +4021,18 @@
               "description": "MCP Gateway configuration for routing MCP server calls through a unified HTTP gateway. Requires the 'mcp-gateway' feature flag to be enabled. Per MCP Gateway Specification v1.0.0: Only container-based execution is supported.",
               "type": "object",
               "properties": {
+                "ci-evidence-boundary": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["image"],
+                  "description": "Private durable CI evidence response enforcement. Requires a separately reviewed, preloaded immutable gateway artifact; no default artifact or activation.",
+                  "properties": {
+                    "image": {
+                      "type": "string",
+                      "pattern": "^ghcr\\.io/[a-z0-9][a-z0-9/_.-]*@sha256:[a-f0-9]{64}$"
+                    }
+                  }
+                },
                 "container": {
                   "type": "string",
                   "x-internal": true,

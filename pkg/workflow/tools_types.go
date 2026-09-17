@@ -521,6 +521,7 @@ type MCPServerConfig struct {
 // Per MCP Gateway Specification v1.0.0: All stdio-based MCP servers MUST be containerized.
 // Direct command execution is not supported.
 type MCPGatewayRuntimeConfig struct {
+	CIEvidenceBoundary   *CIEvidenceBoundaryConfig        `yaml:"ci-evidence-boundary,omitempty"`
 	Container            string                           `yaml:"container,omitempty"`              // Container image for the gateway (required)
 	Version              string                           `yaml:"version,omitempty"`                // Optional version/tag for the container
 	Entrypoint           string                           `yaml:"entrypoint,omitempty"`             // Optional entrypoint override for the container
